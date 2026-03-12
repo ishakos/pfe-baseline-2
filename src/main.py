@@ -4,7 +4,7 @@ from train import train_model
 from evaluate import evaluate_model
 
 
-DATA_PATH = "../data/iot_dataset_clean.csv"
+DATA_PATH = "../../Data/iot_dataset_clean.csv"
 
 
 X, y = load_dataset(DATA_PATH)
