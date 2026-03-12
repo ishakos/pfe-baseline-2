@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-
+import joblib
 
 class LSTMModel(nn.Module):
 
@@ -69,5 +69,7 @@ def train_model(X_train, y_train, epochs=10, batch_size=64):
             total_loss += loss.item()
 
         print(f"Epoch {epoch+1}/{epochs} Loss: {total_loss/len(loader)}")
+
+    joblib.dump(model, "../model/lstm_model.pkl")
 
     return model
