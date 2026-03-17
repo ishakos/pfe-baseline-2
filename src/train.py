@@ -11,13 +11,13 @@ class LSTMModel(nn.Module):
 
         self.lstm = nn.LSTM(
             input_size=input_size,
-            hidden_size=64,
+            hidden_size=128,
             num_layers=2,
-            batch_first=True
+            batch_first=True,
+            dropout=0.3
         )
 
-        self.fc = nn.Linear(64, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.fc = nn.Linear(128, 1)
 
     def forward(self, x):
 
@@ -30,7 +30,7 @@ class LSTMModel(nn.Module):
         return out
 
 
-def train_model(X_train, y_train, epochs=10, batch_size=64):
+def train_model(X_train, y_train, epochs=20, batch_size=512):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,28 +42,22 @@ def train_model(X_train, y_train, epochs=10, batch_size=64):
 
     model = LSTMModel(input_size=X_train.shape[2]).to(device)
 
-    pos_weight = torch.tensor([3.0]).to(device)
+    pos_weight = torch.tensor([(len(y_train) - y_train.sum()) / y_train.sum()])
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     for epoch in range(epochs):
-
         total_loss = 0
 
-        for X_batch, y_batch in loader:
-
-            X_batch = X_batch.to(device)
-            y_batch = y_batch.to(device)
-
+        for xb, yb in loader:
             optimizer.zero_grad()
 
-            outputs = model(X_batch).squeeze()
+            outputs = model(xb).squeeze()
 
-            loss = criterion(outputs, y_batch)
+            loss = criterion(outputs, yb)
 
             loss.backward()
-
             optimizer.step()
 
             total_loss += loss.item()

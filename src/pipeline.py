@@ -7,29 +7,22 @@ def load_dataset(path):
 
     df = pd.read_csv(path)
 
-    X = df.drop(columns=["label", "type"])
+    X = df.drop(columns=[
+    "src_ip",
+    'src_bytes', 
+    'dst_bytes',
+    'src_ip_bytes', 
+    'dst_ip_bytes', 
+    'http_version',
+    'http_method',
+    'ssl_resumed',
+    "label",
+    "type",
+    ], errors="ignore")
+    
     y = df["label"]
 
     return X, y
-
-
-def scale_features(X):
-
-    X = X.replace([np.inf, -np.inf], np.nan)
-    X = X.fillna(0)
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    X_scaled = np.nan_to_num(
-        X_scaled,
-        nan=0.0,
-        posinf=0.0,
-        neginf=0.0
-    )
-
-    return X_scaled, scaler
-
 
 def create_sequences(X, y, window_size=10):
 
