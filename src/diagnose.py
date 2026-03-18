@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 import torch
 import torch.nn as nn
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     f1_score, accuracy_score, precision_score, recall_score,
     confusion_matrix, roc_auc_score, average_precision_score,
@@ -15,6 +16,8 @@ import json
 from sklearn.metrics import precision_recall_curve
 from train import LSTMModel
 from pipeline import create_sequences
+from sklearn.model_selection import GroupShuffleSplit
+
 
 
 # ===============================
@@ -191,12 +194,15 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.data)
 
+    df = df.sort_values(by=["src_ip"]).reset_index(drop=True)
+    groups = df["src_ip"].values
+
     X = df.drop(columns=[
         "src_ip",
-        'src_bytes',
+        'src_bytes', 
         'dst_bytes',
-        'src_ip_bytes',
-        'dst_ip_bytes',
+        'src_ip_bytes', 
+        'dst_ip_bytes', 
         'http_version',
         'http_method',
         'ssl_resumed',
@@ -204,33 +210,29 @@ if __name__ == "__main__":
         "type",
     ], errors="ignore")
 
-    y = df["label"]
+    y = df["label"].values
 
-    # 1. Split FIRST
-    X_train_raw, X_test_raw, y_train_raw, y_test_raw = train_test_split(
-        X,
-        y.values,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
+    X = X.values
 
-    print("RAW TRAIN SHAPE:", X_train_raw.shape)
-    print("RAW TEST SHAPE:", X_test_raw.shape)
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
 
-    # 2. Scale (fit only on train)
-    from sklearn.preprocessing import StandardScaler
+    train_idx, test_idx = next(gss.split(X, y, groups))
+
+    X_train_raw = X[train_idx]
+    X_test_raw  = X[test_idx]
+
+    y_train_raw = y[train_idx]
+    y_test_raw  = y[test_idx]
+
+    groups_train = groups[train_idx]
+    groups_test  = groups[test_idx]
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train_raw)
-    X_test_scaled = scaler.transform(X_test_raw)
+    X_test_scaled  = scaler.transform(X_test_raw)
 
-    # 3. Create sequences separately
-    X_train, y_train = create_sequences(X_train_scaled, y_train_raw)
-    X_test, y_test = create_sequences(X_test_scaled, y_test_raw)
-
-    print("SEQ TRAIN SHAPE:", X_train.shape)
-    print("SEQ TEST SHAPE:", X_test.shape)
+    X_train, y_train = create_sequences(X_train_scaled, y_train_raw, groups_train)
+    X_test, y_test   = create_sequences(X_test_scaled, y_test_raw, groups_test)
 
     # DUPLICATE CHECK
     print(f"\n[DATA CHECK] Duplicates: {df.duplicated().sum()}")

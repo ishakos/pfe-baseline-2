@@ -11,13 +11,13 @@ class LSTMModel(nn.Module):
 
         self.lstm = nn.LSTM(
             input_size=input_size,
-            hidden_size=128,
+            hidden_size=64,
             num_layers=2,
             batch_first=True,
             dropout=0.3
         )
 
-        self.fc = nn.Linear(128, 1)
+        self.fc = nn.Linear(64, 1)
 
     def forward(self, x):
 
@@ -30,7 +30,7 @@ class LSTMModel(nn.Module):
         return out
 
 
-def train_model(X_train, y_train, epochs=20, batch_size=512):
+def train_model(X_train, y_train, epochs=10, batch_size=128):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,27 +42,42 @@ def train_model(X_train, y_train, epochs=20, batch_size=512):
 
     model = LSTMModel(input_size=X_train.shape[2]).to(device)
 
-    pos_weight = torch.tensor([(len(y_train) - y_train.sum()) / y_train.sum()])
+    pos_weight = torch.tensor(
+        [(len(y_train) - y_train.sum()) / y_train.sum()],
+        dtype=torch.float32
+    ).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     for epoch in range(epochs):
+
         total_loss = 0
 
         for xb, yb in loader:
+            xb = xb.to(device)
+            yb = yb.to(device)
             optimizer.zero_grad()
 
-            outputs = model(xb).squeeze()
+            outputs = model(xb).view(-1)
 
             loss = criterion(outputs, yb)
 
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
             total_loss += loss.item()
 
+        if epoch == 0:
+            print("Sample outputs:", outputs[:10].detach().cpu().numpy())
         print(f"Epoch {epoch+1}/{epochs} Loss: {total_loss/len(loader)}")
+
+    with torch.no_grad():
+        sample_out = model(X_train[:100].to(device)).view(-1)
+        probs = torch.sigmoid(sample_out)
+
+    print("Prob range:", probs.min().item(), probs.max().item())
 
     joblib.dump(model, "../model/lstm_model.pkl")
 
