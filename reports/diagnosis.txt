@@ -1,0 +1,33 @@
+LSTM Sequence Diagnosis Report
+==================================================
+
+Split information:
+- split_mode: device
+- n_train_devices: 35
+- n_val_devices: 8
+- n_test_devices: 8
+
+Sequence information:
+- sequence_length: 20
+- input_dim: 29
+- train_sequences: 48340
+- val_sequences: 44138
+- test_sequences: 2614
+
+Class ratios:
+- train positive ratio: 0.5770
+- val positive ratio: 0.9705
+- test positive ratio: 0.1932
+
+Sanity checks:
+- X_train shape: (48340, 20, 29)
+- X_val shape: (44138, 20, 29)
+- X_test shape: (2614, 20, 29)
+- y_train shape: (48340,)
+- y_val shape: (44138,)
+- y_test shape: (2614,)
+
+Metadata samples:
+- train meta sample: [{'device_id': '172.17.0.5', 'start_pos': 0, 'end_pos': 19}, {'device_id': '172.17.0.5', 'start_pos': 1, 'end_pos': 20}, {'device_id': '172.17.0.5', 'start_pos': 2, 'end_pos': 21}, {'device_id': '172.17.0.5', 'start_pos': 3, 'end_pos': 22}, {'device_id': '172.17.0.5', 'start_pos': 4, 'end_pos': 23}]
+- val meta sample: [{'device_id': '192.168.1.192', 'start_pos': 0, 'end_pos': 19}, {'device_id': '192.168.1.192', 'start_pos': 1, 'end_pos': 20}, {'device_id': '192.168.1.192', 'start_pos': 2, 'end_pos': 21}, {'device_id': '192.168.1.192', 'start_pos': 3, 'end_pos': 22}, {'device_id': '192.168.1.192', 'start_pos': 4, 'end_pos': 23}]
+- test meta sample: [{'device_id': '192.168.1.194', 'start_pos': 0, 'end_pos': 19}, {'device_id': '192.168.1.194', 'start_pos': 1, 'end_pos': 20}, {'device_id': '192.168.1.194', 'start_pos': 2, 'end_pos': 21}, {'device_id': '192.168.1.194', 'start_pos': 3, 'end_pos': 22}, {'device_id': '192.168.1.194', 'start_pos': 4, 'end_pos': 23}]

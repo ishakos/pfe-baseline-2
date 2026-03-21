@@ -1,40 +1,52 @@
-import torch
-from pipeline import load_dataset, create_sequences
-from train import train_model
+import json
+
+from config import Config
+from diagnose import generate_diagnosis_report
 from evaluate import evaluate_model
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import GroupShuffleSplit
+from pipeline import create_sequence_bundle
+from train import train_model
 
 
-DATA_PATH = "../../Data/iot_dataset_clean.csv"
+def main():
+    config = Config()
 
-# 1. Load (WITH GROUPS)
-X, y, groups = load_dataset(DATA_PATH)
+    print("Creating sequence bundle...")
+    bundle = create_sequence_bundle(config)
 
-gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    print("Generating diagnosis report...")
+    diagnosis = generate_diagnosis_report(bundle, config)
+    print(diagnosis)
 
-train_idx, test_idx = next(gss.split(X, y, groups))
+    print("Training model...")
+    model, history = train_model(bundle, config)
 
-X_train_raw = X[train_idx]
-X_test_raw  = X[test_idx]
+    print("Evaluating on validation set...")
+    val_metrics = evaluate_model(model, bundle.X_val, bundle.y_val, config, split_name="validation")
 
-y_train_raw = y[train_idx]
-y_test_raw  = y[test_idx]
+    print("Evaluating on test set...")
+    test_metrics = evaluate_model(model, bundle.X_test, bundle.y_test, config, split_name="test")
 
-groups_train = groups[train_idx]
-groups_test  = groups[test_idx]
+    results = {
+        "history": history,
+        "validation_metrics": val_metrics,
+        "test_metrics": test_metrics,
+        "metadata": bundle.metadata,
+    }
 
-# 3. Scale
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train_raw)
-X_test_scaled  = scaler.transform(X_test_raw)
+    with open(config.METRICS_PATH, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=4)
 
-# 4. Create GROUPED sequences
-X_train, y_train = create_sequences(X_train_scaled, y_train_raw, groups_train)
-X_test, y_test   = create_sequences(X_test_scaled, y_test_raw, groups_test)
+    print("\nValidation Metrics:")
+    for k, v in val_metrics.items():
+        print(f"{k}: {v}")
 
-# 5. Train
-model = train_model(X_train, y_train)
+    print("\nTest Metrics:")
+    for k, v in test_metrics.items():
+        print(f"{k}: {v}")
 
-# 6. Evaluate
-evaluate_model(model, X_test, y_test)
+    print(f"\nSaved model to: {config.MODEL_PATH}")
+    print(f"Saved reports to: {config.REPORTS_DIR}")
+
+
+if __name__ == "__main__":
+    main()
